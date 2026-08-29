@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPA Calculator — BScHons (IT&M)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f5f3ee;--surface:#fff;--surface2:#f0ede6;--border:#ddd9d0;--border2:#ccc8be;
+    --text:#1a1916;--text2:#5a564e;--text3:#9a9690;
+    --accent:#1a4a8a;--accent-light:#e8eef8;--accent-mid:#3a6ab0;
+    --success:#1e6644;--success-bg:#e8f5ee;
+    --warn:#7a4f00;--warn-bg:#fef3e2;
+    --danger:#8b1a1a;--danger-bg:#fdeaea;
+    --gold:#b08a2a;--gold-bg:#fdf6e3;
+    --ngpa:#5a3d7a;--ngpa-bg:#f3eefa;--ngpa-border:#d0b8ee;
+    --radius:8px;--radius-lg:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* NAV */
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;height:60px;gap:1rem;position:sticky;top:0;z-index:100;}
+  .nav-logo{font-family:'DM Serif Display',serif;font-size:18px;color:var(--accent);flex:1;}
+  .nav-logo span{color:var(--text3);font-size:13px;font-family:'DM Sans',sans-serif;font-weight:400;margin-left:8px;}
+  .nav-btn{padding:7px 16px;border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);}
+  .nav-btn:hover{background:var(--surface2);}
+  .nav-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .nav-btn.primary:hover{background:var(--accent-mid);}
+  .nav-btn.active-tab{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+
+  .view{display:none;}.view.active{display:block;}
+
+  /* LIST */
+  .page-header{max-width:960px;margin:0 auto;padding:2.5rem 2rem 1rem;}
+  .page-header h2{font-family:'DM Serif Display',serif;font-size:28px;}
+  .page-header p{color:var(--text2);font-size:14px;margin-top:6px;}
+  .students-grid{max-width:960px;margin:0 auto;padding:0 2rem 3rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+  .student-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;cursor:pointer;transition:all .18s;}
+  .student-card:hover{border-color:var(--accent-mid);transform:translateY(-2px);box-shadow:0 4px 16px rgba(26,74,138,.08);}
+  .s-avatar{width:44px;height:44px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+  .s-name{font-weight:600;font-size:15px;margin-bottom:3px;}
+  .s-id{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;}
+  .s-meta{display:flex;gap:8px;flex-wrap:wrap;}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500;}
+  .badge-blue{background:var(--accent-light);color:var(--accent);}
+  .badge-green{background:var(--success-bg);color:var(--success);}
+  .badge-gold{background:var(--gold-bg);color:var(--gold);}
+  .badge-warn{background:var(--warn-bg);color:var(--warn);}
+  .badge-grey{background:var(--surface2);color:var(--text3);}
+  .s-gpa{font-size:20px;font-weight:600;color:var(--accent);margin-top:8px;}
+  .s-gpa span{font-size:12px;color:var(--text3);font-weight:400;}
+  .empty-state{text-align:center;padding:4rem 2rem;color:var(--text3);grid-column:1/-1;}
+  .empty-state .big{font-size:48px;margin-bottom:12px;}
+  .empty-state p{font-size:14px;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border-radius:var(--radius-lg);padding:2rem;width:480px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+  .modal h3{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:1.5rem;}
+  .form-group{margin-bottom:1.1rem;}
+  .form-group label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+  .form-group input,.form-group select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);transition:border-color .15s;}
+  .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:1.5rem;}
+  .btn{padding:8px 18px;border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:transparent;color:var(--text2);}
+  .btn:hover{background:var(--surface2);}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-mid);}
+  .btn.danger{background:var(--danger-bg);color:var(--danger);border-color:#f0bbbb;}
+  .btn.danger:hover{background:#f7d0d0;}
+
+  /* CALC LAYOUT */
+  .calc-wrap{max-width:980px;margin:0 auto;padding:0 1.5rem 4rem;}
+  .student-banner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin:1.5rem 0;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+  .banner-avatar{width:52px;height:52px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:var(--accent);flex-shrink:0;}
+  .banner-info{flex:1;min-width:180px;}
+  .banner-info .b-name{font-size:18px;font-weight:600;}
+  .banner-info .b-sub{font-size:13px;color:var(--text2);margin-top:3px;}
+  .banner-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* INNER PAGE TABS */
+  .inner-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin:0 0 1.5rem;overflow-x:auto;}
+  .inner-tab{padding:10px 20px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;background:transparent;border-top:none;border-left:none;border-right:none;font-family:'DM Sans',sans-serif;}
+  .inner-tab:hover{color:var(--accent);}
+  .inner-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+
+  /* INNER VIEWS */
+  .inner-view{display:none;}.inner-view.active{display:block;}
+
+  /* SUMMARY METRICS */
+  .summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;}
+  .metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .metric-value{font-size:24px;font-weight:600;color:var(--text);}
+  .metric-value.good{color:var(--success);}
+  .metric-value.mid{color:var(--gold);}
+  .metric-value.low{color:var(--danger);}
+  .metric-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .4s;}
+
+  /* GPA BREAKDOWN — SUMMARY PAGE */
+  .summary-page-wrap{padding-bottom:2rem;}
+  .gpa-breakdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.5rem;overflow:hidden;}
+  .breakdown-head{padding:.8rem 1.25rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  .breakdown-head h3{font-size:14px;font-weight:600;flex:1;}
+  table.bk-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.bk-table th{padding:7px 14px;text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);background:var(--surface2);}
+  table.bk-table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text);}
+  table.bk-table tr:last-child td{border-bottom:none;}
+  .bk-val{font-size:15px;font-weight:600;}
+  .bk-val.good{color:var(--success);}
+  .bk-val.mid{color:var(--gold);}
+  .bk-val.low{color:var(--danger);}
+  .bk-val.none{color:var(--text3);}
+  .bk-year td{background:var(--accent-light);font-weight:500;}
+  .bk-overall td{background:#dce8f8;font-weight:700;border-top:2px solid var(--accent);}
+
+  /* Degree class card */
+  .class-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;}
+  .class-gpa-big{font-family:'DM Serif Display',serif;font-size:52px;color:var(--accent);line-height:1;}
+  .class-details{flex:1;}
+  .class-label{font-size:22px;font-weight:600;margin-bottom:4px;}
+  .class-note{font-size:13px;color:var(--text2);}
+  .class-badge-big{display:inline-block;padding:5px 16px;border-radius:24px;font-size:13px;font-weight:600;margin-top:8px;}
+
+  /* SEM TABS */
+  .sem-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
+  .sem-tab{padding:7px 14px;font-size:13px;border:1.5px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-weight:500;transition:all .15s;}
+  .sem-tab:hover{border-color:var(--accent-mid);color:var(--accent);}
+  .sem-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* SEM PANEL */
+  .sem-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1.25rem;}
+  .sem-panel-head{padding:1rem 1.25rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .sem-panel-head h3{font-size:15px;font-weight:600;flex:1;}
+  .sem-pill{font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;}
+  .sem-pill.green{background:var(--success-bg);color:var(--success);}
+  .sem-pill.gold{background:var(--gold-bg);color:var(--gold);}
+  .sem-pill.warn{background:var(--warn-bg);color:var(--warn);}
+  .sem-pill.grey{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+
+  /* MODULE TABLE */
+  table.mod-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.mod-table th{padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);background:var(--surface2);}
+  table.mod-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);}
+  table.mod-table tr:last-child td{border-bottom:none;}
+  table.mod-table tr:hover td{background:var(--surface2);}
+  /* NGPA rows */
+  table.mod-table tr.ngpa-row td{background:var(--ngpa-bg);}
+  table.mod-table tr.ngpa-row:hover td{background:#ece4f6;}
+  /* section dividers */
+  table.mod-table tr.sec-div td{background:var(--surface2);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:5px 12px;border-top:1px solid var(--border);}
+
+  .code-tag{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);}
+  .tbadge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;display:inline-block;}
+  .tbadge.tc{background:var(--accent-light);color:var(--accent);}
+  .tbadge.te{background:var(--warn-bg);color:var(--warn);}
+  .tbadge.tngpa{background:var(--ngpa-bg);color:var(--ngpa);border:1px solid var(--ngpa-border);margin-left:3px;}
+  .pts-cell{font-size:13px;font-weight:500;color:var(--accent);text-align:center;}
+  .ngpa-dash{font-size:13px;color:var(--text3);text-align:center;}
+
+  select.gsel{padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);cursor:pointer;min-width:76px;}
+  select.gsel:focus{outline:none;border-color:var(--accent);}
+  select.nsel{border-color:var(--ngpa-border);color:var(--ngpa);min-width:130px;}
+  select.nsel:focus{border-color:var(--ngpa);}
+
+  /* ELECTIVE ZONE */
+  .elective-zone{padding:1rem 1.25rem;background:var(--gold-bg);border-top:1px solid #e8d8a0;}
+  .elective-zone h4{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--warn);}
+  .elective-zone p{font-size:12px;color:var(--text2);margin-bottom:10px;}
+  .el-add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .el-add-row select{flex:1;min-width:220px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);}
+  .el-add-row select:focus{outline:none;border-color:var(--accent);}
+
+  /* CONFIRM */
+  .confirm-modal{background:var(--surface);border-radius:var(--radius-lg);padding:1.75rem;width:380px;max-width:96vw;text-align:center;}
+  .confirm-modal .icon{font-size:36px;margin-bottom:12px;}
+  .confirm-modal h4{font-size:17px;font-weight:600;margin-bottom:8px;}
+  .confirm-modal p{font-size:13px;color:var(--text2);margin-bottom:1.25rem;}
+  .confirm-modal .actions{display:flex;gap:10px;justify-content:center;}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:500;z-index:999;transition:transform .3s;pointer-events:none;}
+  #toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* PRINT */
+  @media print {
+    nav,.sem-tabs,.banner-actions,.no-print,select,.elective-zone,.el-add-row,.inner-tabs{display:none!important;}
+    .print-show{display:block!important;}
+    body{background:#fff;}
+    .calc-wrap{padding:0 .5rem;}
+    .student-banner{border:1px solid #ccc;border-radius:6px;margin:0 0 10px;padding:.8rem 1rem;}
+    .summary-strip{gap:8px;margin-bottom:10px;}
+    .metric{border:1px solid #ccc;border-radius:6px;padding:.6rem .8rem;}
+    .metric-value{font-size:18px;}
+    .gpa-breakdown{border:1px solid #ccc;border-radius:6px;margin-bottom:10px;}
+    .sem-panel{break-inside:avoid;border:1px solid #ccc;border-radius:6px;margin-bottom:8px;}
+    .sem-panel-head{background:#f5f5f5;padding:.6rem 1rem;}
+    table.mod-table th,table.mod-table td{padding:5px 8px;font-size:11px;}
+    table.mod-table tr.ngpa-row td{background:#f7f2fc;}
+    .pts-cell,.ngpa-dash{font-size:11px;}
+    .inner-view{display:block!important;}
+    .class-card{border:1px solid #ccc;border-radius:6px;}
+  }
+
+  @media (max-width:700px){
+    .summary-strip{grid-template-columns:1fr 1fr;}
+    .form-row{grid-template-columns:1fr;}
+    .inner-tab{padding:8px 14px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">GPA Calc <span>BScHons (IT&amp;M)</span></div>
+  <button class="nav-btn" id="btnBack" style="display:none" onclick="showView('list')">← All Students</button>
+  <button class="nav-btn primary" id="btnAdd" onclick="openRegModal()">+ New Student</button>
+</nav>
+
+<!-- LIST VIEW -->
+<div class="view active" id="viewList">
+  <div class="page-header">
+    <h2>Student Records</h2>
+    <p>BScHons in Information Technology &amp; Management · Faculty GPA System</p>
+  </div>
+  <div class="students-grid" id="studentGrid"></div>
+</div>
+
+<!-- CALC VIEW -->
+<div class="view" id="viewCalc">
+  <div class="calc-wrap">
+    <div class="student-banner" id="studentBanner"></div>
+
+    <!-- Inner page tabs -->
+    <div class="inner-tabs no-print">
+      <button class="inner-tab active" id="itab-grades" onclick="switchInnerTab('grades')">📝 Module Grades</button>
+      <button class="inner-tab" id="itab-summary" onclick="switchInnerTab('summary')">📊 GPA Summary</button>
+    </div>
+
+    <!-- GRADES TAB -->
+    <div class="inner-view active" id="ivGrades">
+      <!-- Summary metrics strip -->
+      <div class="summary-strip">
+        <div class="metric">
+          <div class="metric-label">Overall GPA</div>
+          <div class="metric-value" id="mGPA">—</div>
+          <div class="metric-sub" id="mClass">No grades yet</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">GPA credits</div>
+          <div class="metric-value" id="mCr">0</div>
+          <div class="metric-sub">of 135 required</div>
+          <div class="progress-bar"><div class="progress-fill" id="mCrBar" style="width:0%"></div></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">GPA modules graded</div>
+          <div class="metric-value" id="mMods">0</div>
+          <div class="metric-sub" id="mModSub">of 0 total</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Completion</div>
+          <div class="metric-value" id="mPct">0%</div>
+          <div class="metric-sub">of GPA curriculum</div>
+          <div class="progress-bar"><div class="progress-fill" id="mPctBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Tabs (screen only) -->
+      <div class="sem-tabs no-print" id="semTabs"></div>
+
+      <!-- Active sem (screen) -->
+      <div id="semContent" class="no-print"></div>
+
+      <!-- All sems for print -->
+      <div id="allPrint" class="print-show" style="display:none;"></div>
+    </div>
+
+    <!-- SUMMARY TAB -->
+    <div class="inner-view" id="ivSummary">
+      <div class="summary-page-wrap">
+
+        <!-- Overall classification card -->
+        <div class="class-card" id="classCard">
+          <div class="class-gpa-big" id="summGPABig">—</div>
+          <div class="class-details">
+            <div class="class-label" id="summClassName">No grades entered yet</div>
+            <div class="class-note">BScHons in Information Technology &amp; Management</div>
+            <span class="class-badge-big badge-blue badge" id="summClassBadge">GPA / 4.00</span>
+          </div>
+        </div>
+
+        <!-- Summary metrics (duplicate for this page) -->
+        <div class="summary-strip" style="margin-bottom:1.5rem;">
+          <div class="metric">
+            <div class="metric-label">Overall GPA</div>
+            <div class="metric-value" id="sGPA">—</div>
+            <div class="metric-sub" id="sClass">No grades yet</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">GPA credits earned</div>
+            <div class="metric-value" id="sCr">0</div>
+            <div class="metric-sub">of 135 required</div>
+            <div class="progress-bar"><div class="progress-fill" id="sCrBar" style="width:0%"></div></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Modules graded</div>
+            <div class="metric-value" id="sMods">0</div>
+            <div class="metric-sub" id="sModSub">of 0 GPA modules</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Completion</div>
+            <div class="metric-value" id="sPct">0%</div>
+            <div class="metric-sub">of GPA curriculum</div>
+            <div class="progress-bar"><div class="progress-fill" id="sPctBar" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <!-- GPA Breakdown table -->
+        <div class="gpa-breakdown">
+          <div class="breakdown-head"><h3>GPA Breakdown — Semester · Year · Overall</h3></div>
+          <table class="bk-table" id="bkTable"></table>
+        </div>
+
+        <p style="font-size:12px;color:var(--text3);margin-top:8px;">
+          Classification thresholds: First Class ≥ 3.70 · Second Upper ≥ 3.30 · Second Lower ≥ 3.00 · Pass ≥ 2.00<br>
+          GPA scale: A+/A=4.0 · A-=3.7 · B+=3.3 · B=3.0 · B-=2.7 · C+=2.3 · C=2.0 · C-=1.7 · D=1.0 · F/I=0.0
+        </p>
+      </div>
+
+      <!-- Print version of breakdown (always visible for print) -->
+      <div class="print-show" style="display:none;">
+        <div class="gpa-breakdown">
+          <div class="breakdown-head"><h3>GPA Summary — Semester · Year · Overall</h3></div>
+          <table class="bk-table" id="bkTablePrint"></table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="regOverlay">
+  <div class="modal">
+    <h3 id="regTitle">Register Student</h3>
+    <div class="form-row">
+      <div class="form-group"><label>First Name *</label><input type="text" id="fFirst" placeholder="e.g. Kasun"></div>
+      <div class="form-group"><label>Last Name *</label><input type="text" id="fLast" placeholder="e.g. Perera"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Student ID *</label><input type="text" id="fID" placeholder="e.g. ITM/2021/001"></div>
+      <div class="form-group"><label>Intake Year *</label>
+        <select id="fIntake">
+          <option value="">Select year</option>
+          <option>2019</option><option>2020</option><option>2021</option><option>2022</option><option>2023</option><option>2024</option><option>2025</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" id="fEmail" placeholder="student@faculty.ac.lk"></div>
+      <div class="form-group"><label>Mobile</label><input type="text" id="fPhone" placeholder="+94 77 000 0000"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeReg()">Cancel</button>
+      <button class="btn primary" onclick="saveStudent()">Save Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="delOverlay">
+  <div class="confirm-modal">
+    <div class="icon">🗑️</div>
+    <h4>Delete Student?</h4>
+    <p id="delMsg">This will permanently remove the student and all grade data.</p>
+    <div class="actions">
+      <button class="btn" onclick="closeDel()">Cancel</button>
+      <button class="btn danger" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CURRICULUM DATA — BScHons IT&M 2021+
+// ═══════════════════════════════════════════
+const GRADES = ['—','A+','A','A-','B+','B','B-','C+','C','C-','D','F','I'];
+// Non-GPA "other" module result options
+const NGPA_GRADES = ['—','Pass','Fail','Satisfactory','Unsatisfactory','Completed','Incomplete'];
+const GP = {'A+':4.0,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D':1.0,'F':0.0,'I':0.0};
+
+const YEAR_MAP = {
+  'Year 1':['s1','s2'],
+  'Year 2':['s3','s4'],
+  'Year 3':['s5','s6'],
+  'Year 4':['s78']
+};
+
+// NOTE on gpa flag & compulsory:
+//   gpa:true  → counted in GPA calculation, shown in GPA section
+//   gpa:false → NOT in GPA, shown in "Other Modules" section, result only
+//   compulsory:true → module is compulsory (shown with C badge), false/absent → same visual but all s2-s4 are all compulsory
+
+const SEMS = {
+  s1:{ label:'Semester 1', year:'Year 1', mods:[
+    {c:'IN 1120',n:'Structured Programming I',cr:2.5,t:'C',gpa:true},
+    {c:'IN 1301',n:'Digital Systems and Digital Computers',cr:3.0,t:'C',gpa:true},
+    {c:'IN 1601',n:'Multimedia Technologies and Web Design',cr:3.0,t:'C',gpa:true},
+    {c:'IS 1101',n:'Principles of Management',cr:2.5,t:'C',gpa:true},
+    {c:'CM 1121',n:'Essentials of Mathematics',cr:2.5,t:'C',gpa:true},
+    {c:'IS 1011',n:'English',cr:3.0,t:'C',gpa:false},  // Other module (result only)
+  ]},
+  s2:{ label:'Semester 2', year:'Year 1', mods:[
+    // ALL compulsory
+    {c:'IN 1130',n:'Structured Programming II',cr:2.5,t:'C',gpa:true},
+    {c:'IN 1401',n:'Fundamentals of Databases',cr:2.5,t:'C',gpa:true},
+    {c:'IS 1110',n:'Business Foundation',cr:2.5,t:'C',gpa:true},
+    {c:'IS 1910',n:'Industry Reconnaissance and Engagement',cr:2.0,t:'C',gpa:true},
+    {c:'CM 1131',n:'Elements of Probability and Statistics',cr:2.5,t:'C',gpa:true},
+    {c:'IS 1901',n:'Microcontroller based ICT Project',cr:3.0,t:'C',gpa:true},
+  ]},
+  s3:{ label:'Semester 3', year:'Year 2', mods:[
+    // ALL compulsory GPA modules
+    {c:'IN 2110',n:'Fundamentals of Object Oriented Programming',cr:3.0,t:'C',gpa:true},
+    {c:'IN 2120',n:'Web Programming',cr:2.5,t:'C',gpa:true},
+    {c:'IN 2201',n:'Software Engineering',cr:3.0,t:'C',gpa:true},
+    {c:'IN 2211',n:'Object Oriented Analysis and Design',cr:2.5,t:'C',gpa:true},
+    {c:'IS 2200',n:'Principles of Marketing & Consumer Solutions',cr:2.5,t:'C',gpa:true},
+    {c:'IS 2240',n:'Fundamentals of Accounting and Finance',cr:2.5,t:'C',gpa:true},
+    {c:'CM 2121',n:'Foundation of Mathematical Methods',cr:2.5,t:'C',gpa:true},
+  ],
+  // Non-Technical Module pool — student selects 1 per semester (standard)
+  // Some students may take both their 2 required NTMs in one semester
+  ntmPool:[
+    {c:'DI1013',n:'Appreciation of Literary Works'},
+    {c:'DI1015',n:'Counselling'},
+    {c:'DI1016',n:'Landscape Design — Introduction to Ecology'},
+    {c:'DI1018',n:'Fundamentals of Human Nutrition'},
+  ], ntmCr:2.0, ntmNote:'Students must complete 2 Non-Technical Modules across Year 2. Standard: 1 per semester. Some students take both in one semester.' },
+  s4:{ label:'Semester 4', year:'Year 2', mods:[
+    // ALL compulsory GPA modules
+    {c:'IN 2610',n:'Graphic Design and Development',cr:2.5,t:'C',gpa:true},
+    {c:'IN 2410',n:'Database Systems',cr:2.5,t:'C',gpa:true},
+    {c:'IN 2301',n:'Essentials of Computer Organization & Architecture',cr:2.5,t:'C',gpa:true},
+    {c:'IN 2121',n:'Data Structures and Algorithms I',cr:2.5,t:'C',gpa:true},
+    {c:'IS 2310',n:'Essentials of Business Law and Taxation',cr:2.0,t:'C',gpa:true},
+    {c:'IS 2230',n:'Economic Applications in Business',cr:2.5,t:'C',gpa:true},
+    {c:'CM 2111',n:'Statistical Inference',cr:2.5,t:'C',gpa:true},
+    {c:'IS 2901',n:'Software Development Project',cr:4.0,t:'C',gpa:true},
+  ],
+  // Full pool for Semester 4 — student picks remaining NTM(s) not yet taken in s3
+  ntmPool:[
+    {c:'DI1013',n:'Appreciation of Literary Works'},
+    {c:'DI1014',n:'Fundamentals of Fashion Industry'},
+    {c:'DI1015',n:'Counselling'},
+    {c:'DI1016',n:'Introduction to Ecology and Landscape Design'},
+    {c:'DI1017',n:'Active Citizens'},
+    {c:'DI1018',n:'Fundamentals of Human Nutrition'},
+  ], ntmCr:2.0, ntmNote:'Add remaining NTM(s) here. If taking both NTMs in Semester 4, add both from this list.' },
+  s5:{ label:'Semester 5', year:'Year 3', mods:[
+    {c:'IN 3311',n:'Operating Systems',cr:2.5,t:'C',gpa:true},
+    {c:'IN 3530',n:'Data Communication & Computer Networks',cr:2.5,t:'C',gpa:true},
+    {c:'CM 3311',n:'Artificial Intelligence',cr:2.5,t:'C',gpa:true},
+    {c:'CM 3211',n:'Automata Theory',cr:2.5,t:'C',gpa:true},
+    {c:'IS 3610',n:'Management Information Systems',cr:2.5,t:'C',gpa:true},
+    {c:'IS 3920',n:'Individual Project on Business Solutions',cr:2.5,t:'C',gpa:true},
+    {c:'IS 3700',n:'IT Project Management',cr:2.5,t:'C',gpa:true},
+    {c:'IS 3011',n:'Communication Skills and Professional Conduct',cr:2.0,t:'C',gpa:false},  // Other module
+  ], elPool:[
+    {c:'IN 3700',n:'Human Computer Interaction'},{c:'IN 3101',n:'Enterprise Application Development'},
+    {c:'IN 3320',n:'Embedded Systems'},{c:'IN 3210',n:'Mobile Applications Development'},
+    {c:'IS 3130',n:'Strategic Management'},{c:'IS 3020',n:'Human Communication and Language Structures'},
+    {c:'IS 3120',n:'Organizational Behaviour'},{c:'IS 3200',n:'Digital Business Management'},
+    {c:'IS 3300',n:'Management Accounting'},{c:'IS 3510',n:'Fundamentals of Behavioural Genetics'},
+    {c:'IS 3520',n:'Fundamentals of Behavioural Science'},{c:'IS 3720',n:'Supply Chain Management'},
+    {c:'IS 3730',n:'Talent Management'},
+  ], elCr:2.5, elNote:'At least 2 elective modules must be taken across Semester 5 & 6.' },
+  s6:{ label:'Semester 6', year:'Year 3', mods:[
+    {c:'IS 3001',n:'Scientific Communication',cr:2.5,t:'C',gpa:true},
+    {c:'IS 3500',n:'Research Methodology',cr:2.0,t:'C',gpa:true},
+    {c:'IS 3000',n:'Industrial Training',cr:6.0,t:'C',gpa:false},   // Other module
+  ], elPool:[
+    {c:'IS 3540',n:'Cognitive Psychology of Consumer Decisions'},{c:'IS 3320',n:'Financial Analysis and Management'},
+    {c:'CM 3321',n:'Logic Programming & Artificial Cognitive Systems'},{c:'IN 3410',n:'Data Mining and Data Warehousing'},
+    {c:'IS 4430',n:'Social Aspects of IT'},{c:'IS 4480',n:'International Business'},
+  ], elCr:2.5, elNote:'At least 2 elective modules must be taken across Semester 5 & 6.' },
+  s78:{ label:'Semester 7 & 8', year:'Year 4', mods:[
+    {c:'IS 4650',n:'Software Management',cr:2.5,t:'C',gpa:true},
+    {c:'IS 4600',n:'IT Quality Assurance',cr:2.5,t:'C',gpa:true},
+    {c:'IS 4440',n:'Professional Practice',cr:2.5,t:'C',gpa:true},
+    {c:'IS 4660',n:'Corporate Information Security Management',cr:2.5,t:'C',gpa:true},
+    {c:'IS 4990',n:'Comprehensive Group Project',cr:10.0,t:'C',gpa:true},
+  ], elPool:[
+    {c:'IN 4740',n:'UI/UX Engineering'},{c:'IN 4560',n:'Information Security'},{c:'IN 4770',n:'Cloud Computing'},
+    {c:'IN 4750',n:'Ubiquitous and Wearable Computing'},{c:'IN 4440',n:'Advanced Database Management Systems'},
+    {c:'IN 4531',n:'Multimedia Communications'},{c:'IN 4721',n:'Geographic Information Systems'},
+    {c:'IN 4220',n:'Software Architecture and Design Patterns'},{c:'IN 4601',n:'Multimedia Systems'},
+    {c:'IN 4760',n:'Location-Based Services and Systems'},{c:'IN 4430',n:'Digital Resource Archiving & Information Retrieval'},
+    {c:'IN 4411',n:'Big Data Analytics'},{c:'IN 4320',n:'Internet of Things'},
+    {c:'IN 4101',n:'Theory of Programming Languages'},{c:'IN 4701',n:'Distributed Systems and Cluster Computing'},
+    {c:'CM 3111',n:'Computational Methods'},{c:'CM 3121',n:'Statistical Computing'},
+    {c:'CM 3331',n:'Fundamentals of Bioinformatics'},{c:'CM 4111',n:'Introduction to Numerical Optimization'},
+    {c:'CM 4161',n:'Advanced Topics in Statistics'},{c:'CM 4211',n:'Theory of Computability & Complexity'},
+    {c:'CM 4221',n:'Theory of Compilers'},{c:'CM 4311',n:'Artificial Neural Networks & Evolutionary Computing'},
+    {c:'CM 4321',n:'Complex Systems and Agent Technology'},{c:'CM 4331',n:'Semantic Web and Ontological Modelling'},
+    {c:'CM 4341',n:'Natural Language Processing'},{c:'CM 4351',n:'Fuzzy Logic'},
+    {c:'CM 4361',n:'Robotics'},{c:'CM 4371',n:'Machine Learning and Pattern Recognition'},
+    {c:'CM 4381',n:'Deep Learning Architectures'},{c:'CM 4391',n:'Advanced Bioinformatics'},
+    {c:'CM 4231',n:'Formal Methods and Software Verification'},{c:'CM 4411',n:'Reinforcement Learning'},
+    {c:'CM 4141',n:'Operational Research'},
+    {c:'IS 4620',n:'Information Systems Management'},{c:'IS 4720',n:'Management of Sensitive Projects'},
+    {c:'IS 4630',n:'Cloud Infrastructure Management'},{c:'IS 4640',n:'Knowledge Representation and Management'},
+    {c:'IS 4460',n:'Social Entrepreneurship'},{c:'IS 4000',n:'Educational Technology'},
+    {c:'IS 4470',n:'Business Intelligence'},{c:'IS 3410',n:'Forensic Accounting and Fraud Investigations'},
+    {c:'IS 4100',n:'Corporate Governance and Social Responsibility'},{c:'IS 4350',n:'Financial Engineering'},
+    {c:'IS 4500',n:'Advanced Topics in Behavioural Genetics'},{c:'IS 4530',n:'Applied Behavioural Science'},
+    {c:'IS 3310',n:'Accounting Information Systems'},{c:'IS 4490',n:'Information Technology Law'},
+    {c:'IS 4730',n:'Management Science'},{c:'IS 4360',n:'Risk and Portfolio Management'},
+    {c:'IS 4110',n:'Business Scenario Planning'},{c:'IS 4120',n:'Business Change and Process Management'},
+    {c:'IS 3210',n:'Consumer Solutions Designing and Management'},{c:'IS 4220',n:'Marketing Management'},
+    {c:'IS 4240',n:'Product Management'},{c:'IS 4520',n:'Applied Market Research Methods'},
+    {c:'IS 4250',n:'Business Architecture Modelling'},
+  ], elCr:2.5, elNote:'Elective credit limits: IN/CM 7.5–10 credits, IS modules 15–17.5 credits.' }
+};
+const SEM_KEYS = ['s1','s2','s3','s4','s5','s6','s78'];
+
+// ══════ DB ══════
+function loadDB(){ try{ return JSON.parse(localStorage.getItem('itm_gpa_db')||'{}'); }catch(e){ return {}; } }
+function saveDB(db){ localStorage.setItem('itm_gpa_db',JSON.stringify(db)); }
+function getStudents(){ return loadDB().students||[]; }
+function saveStudents(a){ const db=loadDB(); db.students=a; saveDB(db); }
+
+// ══════ STATE ══════
+let curId=null, actSem='s1', delId=null, editMode=false, editId=null, activeInnerTab='grades';
+
+// ══════ TOAST ══════
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+
+// ══════ INNER TABS ══════
+function switchInnerTab(tab){
+  activeInnerTab=tab;
+  document.querySelectorAll('.inner-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.inner-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('itab-'+tab).classList.add('active');
+  document.getElementById('iv'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  if(tab==='summary') refreshSummaryPage();
+}
+
+// ══════ VIEWS ══════
+function showView(v){
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+  document.getElementById('view'+v[0].toUpperCase()+v.slice(1)).classList.add('active');
+  document.getElementById('btnBack').style.display=v==='list'?'none':'inline-block';
+  document.getElementById('btnAdd').style.display=v==='list'?'inline-block':'none';
+  if(v==='list') renderList();
+}
+
+// ══════ LIST ══════
+function renderList(){
+  const grid=document.getElementById('studentGrid');
+  const ss=getStudents();
+  if(!ss.length){ grid.innerHTML=`<div class="empty-state"><div class="big">📋</div><p>No students registered yet.<br>Click <strong>+ New Student</strong> to add one.</p></div>`; return; }
+  grid.innerHTML=ss.map(s=>{
+    const gpa=overallGPA(s);
+    const ini=((s.first||'?')[0]+(s.last||'?')[0]).toUpperCase();
+    return `<div class="student-card" onclick="openStudent('${s.id}')">
+      <div class="s-avatar">${ini}</div>
+      <div class="s-name">${s.first} ${s.last}</div>
+      <div class="s-id">${s.studentId}</div>
+      <div class="s-meta"><span class="badge badge-blue">Intake ${s.intake}</span><span class="badge badge-grey">IT&amp;M</span></div>
+      ${gpa!==null?`<div class="s-gpa">${gpa.toFixed(2)} <span>/ 4.00 · ${gpaClass(gpa)}</span></div>`:`<div class="s-gpa" style="color:var(--text3);font-size:14px;">No grades yet</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ══════ GPA CALC ══════
+function allMods(s,sk){
+  const sem=SEMS[sk], el=(s.electives||{})[sk]||[];
+  const ntm=(s.ntms||{})[sk]||[];
+  const ntmMapped=ntm.map(e=>({c:e.c,n:e.n,cr:sem.ntmCr||2.0,t:'C',gpa:false,ntm:true}));
+  return [...sem.mods,...el.map(e=>({c:e.c,n:e.n,cr:sem.elCr||2.5,t:'E',gpa:true})),...ntmMapped];
+}
+function semGPA(s,sk){
+  const g=s.grades||{}; let qp=0,cr=0;
+  allMods(s,sk).forEach(m=>{ const gr=g[m.c]; if(gr&&m.gpa&&GP[gr]!==undefined){ qp+=GP[gr]*m.cr; cr+=m.cr; } });
+  return cr>0?qp/cr:null;
+}
+function yearGPA(s,yr){
+  const g=s.grades||{}; let qp=0,cr=0;
+  (YEAR_MAP[yr]||[]).forEach(sk=>allMods(s,sk).forEach(m=>{ const gr=g[m.c]; if(gr&&m.gpa&&GP[gr]!==undefined){ qp+=GP[gr]*m.cr; cr+=m.cr; } }));
+  return cr>0?qp/cr:null;
+}
+function overallGPA(s){
+  const g=s.grades||{}; let qp=0,cr=0;
+  SEM_KEYS.forEach(sk=>allMods(s,sk).forEach(m=>{ const gr=g[m.c]; if(gr&&m.gpa&&GP[gr]!==undefined){ qp+=GP[gr]*m.cr; cr+=m.cr; } }));
+  return cr>0?qp/cr:null;
+}
+function gpaClass(v){
+  if(v===null||v===undefined) return '—';
+  if(v>=3.7) return 'First Class';
+  if(v>=3.3) return 'Second Upper';
+  if(v>=3.0) return 'Second Lower';
+  if(v>=2.0) return 'Pass';
+  return 'Below Pass';
+}
+function gpaCol(v){ if(v===null) return 'none'; return v>=3.7?'good':v>=2.0?'mid':'low'; }
+function classBadgeCls(v){
+  if(v===null) return 'badge-grey';
+  if(v>=3.7) return 'badge-green';
+  if(v>=3.0) return 'badge-gold';
+  if(v>=2.0) return 'badge-warn';
+  return 'badge-grey';
+}
+
+// ══════ BREAKDOWN TABLE ══════
+function buildBreakdown(s){
+  let h=`<thead><tr><th>Period</th><th>Semester / Year</th><th style="text-align:center;width:90px">GPA</th><th style="text-align:center">Classification</th></tr></thead><tbody>`;
+  Object.entries(YEAR_MAP).forEach(([yr,keys])=>{
+    keys.forEach(sk=>{
+      const sg=semGPA(s,sk);
+      h+=`<tr>
+        <td style="color:var(--text3);font-size:12px;">${yr}</td>
+        <td>${SEMS[sk].label}</td>
+        <td style="text-align:center"><span class="bk-val ${gpaCol(sg)}">${sg!==null?sg.toFixed(2):'—'}</span></td>
+        <td style="text-align:center;font-size:12px;color:var(--text2)">${gpaClass(sg)}</td>
+      </tr>`;
+    });
+    const yg=yearGPA(s,yr);
+    h+=`<tr class="bk-year">
+      <td></td><td><strong>${yr} GPA</strong></td>
+      <td style="text-align:center"><span class="bk-val ${gpaCol(yg)}">${yg!==null?yg.toFixed(2):'—'}</span></td>
+      <td style="text-align:center;font-size:12px">${gpaClass(yg)}</td>
+    </tr>`;
+  });
+  const og=overallGPA(s);
+  h+=`<tr class="bk-overall">
+    <td></td><td>Overall / Cumulative GPA</td>
+    <td style="text-align:center"><span class="bk-val ${gpaCol(og)}">${og!==null?og.toFixed(2):'—'}</span></td>
+    <td style="text-align:center">${gpaClass(og)}</td>
+  </tr></tbody>`;
+  return h;
+}
+function refreshBreakdown(s){
+  const h=buildBreakdown(s);
+  const t1=document.getElementById('bkTable'); if(t1) t1.innerHTML=h;
+  const t2=document.getElementById('bkTablePrint'); if(t2) t2.innerHTML=h;
+}
+
+// ══════ SUMMARY PAGE REFRESH ══════
+function refreshSummaryPage(){
+  const s=getCS(); if(!s) return;
+  const g=s.grades||{}; let qp=0,cr=0,graded=0,total=0;
+  SEM_KEYS.forEach(sk=>allMods(s,sk).forEach(m=>{ if(m.gpa){ total++; const gr=g[m.c]; if(gr&&GP[gr]!==undefined){ qp+=GP[gr]*m.cr; cr+=m.cr; graded++; } } }));
+  const gpa=cr>0?qp/cr:null;
+
+  // Big class card
+  document.getElementById('summGPABig').textContent=gpa!==null?gpa.toFixed(2):'—';
+  document.getElementById('summClassName').textContent=gpa!==null?gpaClass(gpa):'No grades entered yet';
+  const sb=document.getElementById('summClassBadge');
+  sb.textContent=gpa!==null?gpa.toFixed(2)+' / 4.00':'Awaiting grades';
+  sb.className='class-badge-big badge '+classBadgeCls(gpa);
+
+  // Summary strip
+  const sge=document.getElementById('sGPA');
+  if(gpa!==null){ sge.textContent=gpa.toFixed(2); sge.className='metric-value '+gpaCol(gpa); document.getElementById('sClass').textContent=gpaClass(gpa); }
+  else { sge.textContent='—'; sge.className='metric-value'; document.getElementById('sClass').textContent='No grades yet'; }
+  document.getElementById('sCr').textContent=cr.toFixed(1);
+  document.getElementById('sCrBar').style.width=Math.min(100,cr/135*100)+'%';
+  document.getElementById('sMods').textContent=graded;
+  document.getElementById('sModSub').textContent='of '+total+' GPA modules';
+  const pct=total>0?Math.round(graded/total*100):0;
+  document.getElementById('sPct').textContent=pct+'%';
+  document.getElementById('sPctBar').style.width=pct+'%';
+
+  refreshBreakdown(s);
+}
+
+// ══════ SUMMARY STRIP (grades tab) ══════
+function calcSummary(){
+  const s=getCS(); if(!s) return;
+  const g=s.grades||{}; let qp=0,cr=0,graded=0,total=0;
+  SEM_KEYS.forEach(sk=>allMods(s,sk).forEach(m=>{ if(m.gpa){ total++; const gr=g[m.c]; if(gr&&GP[gr]!==undefined){ qp+=GP[gr]*m.cr; cr+=m.cr; graded++; } } }));
+  const gpa=cr>0?qp/cr:null;
+  const ge=document.getElementById('mGPA');
+  if(gpa!==null){ ge.textContent=gpa.toFixed(2); ge.className='metric-value '+gpaCol(gpa); document.getElementById('mClass').textContent=gpaClass(gpa); }
+  else { ge.textContent='—'; ge.className='metric-value'; document.getElementById('mClass').textContent='No grades yet'; }
+  document.getElementById('mCr').textContent=cr.toFixed(1);
+  document.getElementById('mCrBar').style.width=Math.min(100,cr/135*100)+'%';
+  document.getElementById('mMods').textContent=graded;
+  document.getElementById('mModSub').textContent='of '+total+' GPA modules';
+  const pct=total>0?Math.round(graded/total*100):0;
+  document.getElementById('mPct').textContent=pct+'%';
+  document.getElementById('mPctBar').style.width=pct+'%';
+  // Also sync breakdown if summary tab is open
+  if(activeInnerTab==='summary') refreshSummaryPage();
+}
+
+// ══════ MODULE ROWS ══════
+function buildRows(s, sk, forPrint){
+  const sem=SEMS[sk];
+  const g=s.grades||{}, ng=s.ngpaGrades||{};
+  const el=(s.electives||{})[sk]||[];
+  const mods=allMods(s,sk);
+  let h='';
+
+  // — GPA modules + compulsory non-GPA modules (shown together in main section) —
+  const mainMods = mods.filter(m => m.gpa || m.compulsory);
+  const otherMods = mods.filter(m => !m.gpa && !m.compulsory);
+
+  if(mainMods.length){
+    h+=`<tr class="sec-div"><td colspan="6">Compulsory Modules — GPA modules contribute to GPA calculation · "Not in GPA" modules are graded but excluded from GPA</td></tr>`;
+    mainMods.forEach(m=>{
+      const isEl=m.t==='E';
+      const isCompOther=!m.gpa && m.compulsory; // compulsory but not GPA
+      const gr=g[m.c]||'—';
+      const pts=(!isCompOther && gr!=='—'&&GP[gr]!==undefined)?(GP[gr]*m.cr).toFixed(2):'—';
+      const sid=m.c.replace(/\s/g,'_');
+      if(forPrint){
+        h+=`<tr${isCompOther?' class="ngpa-row"':''}><td class="code-tag">${m.c}</td><td>${m.n}</td>
+          <td><span class="tbadge ${isEl?'te':'tc'}">${m.t}</span>${isCompOther?'<span class="tbadge tngpa" style="margin-left:3px">Not in GPA</span>':''}</td>
+          <td style="text-align:center">${m.cr}</td>
+          <td class="${isCompOther?'ngpa-dash':'pts-cell'}">${pts}</td>
+          <td${isCompOther?' style="color:var(--ngpa);font-weight:500"':''}>${gr}</td></tr>`;
+      } else {
+        const elIdx=isEl?el.findIndex(x=>x.c===m.c):-1;
+        const rmBtn=isEl?`<button class="btn" style="padding:3px 7px;font-size:11px;color:var(--danger);margin-left:4px" onclick="removeEl('${sk}',${elIdx})">✕</button>`:'';
+        const onchg=isEl?`setElGr('${sk}',${elIdx},this.value)`:isCompOther?`setGr('${m.c}',this.value,${m.cr},true)`:`setGr('${m.c}',this.value,${m.cr})`;
+        h+=`<tr${isCompOther?' class="ngpa-row"':''}><td class="code-tag">${m.c}</td><td>${m.n}</td>
+          <td><span class="tbadge ${isEl?'te':'tc'}">${m.t}</span>${isCompOther?'<span class="tbadge tngpa" style="margin-left:3px">Not in GPA</span>':''}</td>
+          <td style="text-align:center">${m.cr}</td>
+          <td class="${isCompOther?'ngpa-dash':'pts-cell'}" id="pts_${sid}">${pts}</td>
+          <td style="display:flex;align-items:center;gap:4px">
+            <select class="gsel${isCompOther?' nsel':''}" id="gr_${sid}" onchange="${onchg}">
+              ${GRADES.map(gg=>`<option value="${gg}" ${gr===gg?'selected':''}>${gg}</option>`).join('')}
+            </select>${rmBtn}
+          </td></tr>`;
+      }
+    });
+  }
+
+  // — Non-Technical Modules (student-selected from ntmPool) —
+  const ntmMods = otherMods.filter(m => m.ntm);
+  const genericOtherMods = otherMods.filter(m => !m.ntm);
+
+  if(ntmMods.length){
+    const ntmArr=(s.ntms||{})[sk]||[];
+    h+=`<tr class="sec-div"><td colspan="6">Non-Technical Modules — grade recorded only, not included in GPA calculation</td></tr>`;
+    ntmMods.forEach(m=>{
+      const gr=g[m.c]||'—';
+      const sid=m.c.replace(/[\s]/g,'_');
+      const ntmIdx=ntmArr.findIndex(x=>x.c===m.c);
+      const rmBtn=(!forPrint&&ntmIdx>=0)?`<button class="btn" style="padding:3px 7px;font-size:11px;color:var(--danger);margin-left:4px" onclick="removeNtm('${sk}',${ntmIdx})">✕</button>`:'';
+      if(forPrint){
+        h+=`<tr class="ngpa-row">
+          <td class="code-tag">${m.c}</td><td>${m.n}</td>
+          <td><span class="tbadge tc">C</span><span class="tbadge tngpa" style="background:#e0f5f1;color:#0c7a6a;border-color:#a8d9c8">Non-Technical</span></td>
+          <td style="text-align:center">${m.cr}</td>
+          <td class="ngpa-dash">—</td>
+          <td style="color:#0c7a6a;font-weight:500">${gr}</td></tr>`;
+      } else {
+        h+=`<tr class="ngpa-row">
+          <td class="code-tag">${m.c}</td><td>${m.n}</td>
+          <td><span class="tbadge tc">C</span><span class="tbadge tngpa" style="background:#e0f5f1;color:#0c7a6a;border-color:#a8d9c8">Non-Technical</span></td>
+          <td style="text-align:center">${m.cr}</td>
+          <td class="ngpa-dash">—</td>
+          <td style="display:flex;align-items:center;gap:4px">
+            <select class="gsel nsel" style="border-color:#a8d9c8;color:#0c7a6a" id="ngr_${sid}" onchange="setGr('${m.c}',this.value,${m.cr},true)">
+              ${GRADES.map(gg=>`<option value="${gg}" ${gr===gg?'selected':''}>${gg}</option>`).join('')}
+            </select>${rmBtn}
+          </td></tr>`;
+      }
+    });
+  }
+
+  if(genericOtherMods.length){
+    h+=`<tr class="sec-div"><td colspan="6">Other Modules — grade recorded only, not included in GPA calculation</td></tr>`;
+    genericOtherMods.forEach(m=>{
+      const gr=g[m.c]||'—';
+      const sid=m.c.replace(/[\s]/g,'_');
+      if(forPrint){
+        h+=`<tr class="ngpa-row">
+          <td class="code-tag">${m.c}</td><td>${m.n}</td>
+          <td><span class="tbadge tc">C</span><span class="tbadge tngpa">Other</span></td>
+          <td style="text-align:center">${m.cr}</td>
+          <td class="ngpa-dash">—</td>
+          <td style="color:var(--ngpa);font-weight:500">${gr}</td></tr>`;
+      } else {
+        h+=`<tr class="ngpa-row">
+          <td class="code-tag">${m.c}</td><td>${m.n}</td>
+          <td><span class="tbadge tc">C</span><span class="tbadge tngpa">Other</span></td>
+          <td style="text-align:center">${m.cr}</td>
+          <td class="ngpa-dash">—</td>
+          <td><select class="gsel nsel" id="ngr_${sid}" onchange="setGr('${m.c}',this.value,${m.cr},true)">
+            ${GRADES.map(gg=>`<option value="${gg}" ${gr===gg?'selected':''}>${gg}</option>`).join('')}
+          </select></td></tr>`;
+      }
+    });
+  }
+  return h;
+}
+
+// ══════ SEM PANEL ══════
+function renderSemPanel(){
+  const s=getCS(); if(!s) return;
+  const sem=SEMS[actSem];
+  const el=(s.electives||{})[actSem]||[];
+  const sg=semGPA(s,actSem);
+  const pillCls=sg===null?'grey':sg>=3.7?'green':sg>=2.0?'gold':'warn';
+
+  const ntmList=(s.ntms||{})[actSem]||[];
+  const totalNtmAcrossY2=([...(s.ntms||{})['s3']||[],...(s.ntms||{})['s4']||[]]).length;
+  const ntmZone=sem.ntmPool?`
+    <div class="elective-zone" style="background:#e8f8f4;border-top-color:#a8d9c8;">
+      <h4 style="color:#0c7a6a;">Non-Technical Modules (NGPA)</h4>
+      <p style="color:#1a5c4e;">${sem.ntmNote||''}</p>
+      <p style="color:#1a5c4e;font-weight:600;font-size:12px;">Added this semester: ${ntmList.length} &nbsp;|&nbsp; Total across Year 2: ${totalNtmAcrossY2} / 2 required</p>
+      <div class="el-add-row">
+        <select id="ntmPick_${actSem}" style="border-color:#a8d9c8;color:#0c7a6a;">
+          <option value="">— Select Non-Technical Module to add —</option>
+          ${sem.ntmPool.filter(e=>!ntmList.find(x=>x.c===e.c)).map(e=>`<option value="${e.c}|${e.n.replace(/'/g,'&#39;')}">${e.c} · ${e.n}</option>`).join('')}
+        </select>
+        <button class="btn" style="background:#0c7a6a;color:#fff;border-color:#0c7a6a" onclick="addNtm('${actSem}')">+ Add NTM</button>
+      </div>
+    </div>`:'';
+
+  const elZone=sem.elPool?`
+    <div class="elective-zone">
+      <h4>Elective modules</h4>
+      <p>${sem.elNote||''} Each elective: ${sem.elCr||2.5} GPA credits.</p>
+      <div class="el-add-row">
+        <select id="elPick_${actSem}">
+          <option value="">— Select elective to add —</option>
+          ${sem.elPool.filter(e=>!el.find(x=>x.c===e.c)).map(e=>`<option value="${e.c}|${e.n.replace(/'/g,'&#39;')}">${e.c} · ${e.n}</option>`).join('')}
+        </select>
+        <button class="btn primary" onclick="addEl('${actSem}')">+ Add Elective</button>
+      </div>
+    </div>`:'';
+
+  document.getElementById('semContent').innerHTML=`
+    <div class="sem-panel">
+      <div class="sem-panel-head">
+        <h3>${sem.label}</h3>
+        <span class="sem-pill ${pillCls}" id="semPill">${sg!==null?'Semester GPA: '+sg.toFixed(2):'No GPA grades yet'}</span>
+      </div>
+      <table class="mod-table">
+        <thead><tr>
+          <th style="width:95px">Code</th><th>Module name</th>
+          <th style="width:105px">Type</th>
+          <th style="width:68px;text-align:center">Credits</th>
+          <th style="width:88px;text-align:center">Grade pts</th>
+          <th style="width:150px">Grade / Result</th>
+        </tr></thead>
+        <tbody>${buildRows(s,actSem,false)}</tbody>
+      </table>
+      ${ntmZone||''}
+      ${elZone}
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px;">
+      GPA scale: A+/A=4.0 · A-=3.7 · B+=3.3 · B=3.0 · B-=2.7 · C+=2.3 · C=2.0 · C-=1.7 · D=1.0 · F/I=0.0<br>
+      Other modules (purple rows): grade entered but not counted in GPA calculation.
+    </p>`;
+}
+
+function renderAllPrint(){
+  const s=getCS(); if(!s) return;
+  let h='';
+  SEM_KEYS.forEach(sk=>{
+    const sem=SEMS[sk]; const sg=semGPA(s,sk);
+    const pillCls=sg===null?'grey':sg>=3.7?'green':sg>=2.0?'gold':'warn';
+    h+=`<div class="sem-panel">
+      <div class="sem-panel-head">
+        <h3>${sem.label}</h3>
+        ${sg!==null?`<span class="sem-pill ${pillCls}" style="font-size:11px;padding:2px 10px;">GPA: ${sg.toFixed(2)}</span>`:''}
+      </div>
+      <table class="mod-table">
+        <thead><tr><th>Code</th><th>Module</th><th>Type</th><th style="text-align:center">Credits</th><th style="text-align:center">Grade pts</th><th>Grade / Result</th></tr></thead>
+        <tbody>${buildRows(s,sk,true)}</tbody>
+      </table>
+    </div>`;
+  });
+  document.getElementById('allPrint').innerHTML=h;
+}
+
+// ══════ GRADE SETTERS ══════
+function setGr(code,val,cr,isOther){
+  const s=getCS(); if(!s) return;
+  if(!s.grades) s.grades={};
+  if(val==='—') delete s.grades[code]; else s.grades[code]=val;
+  saveCS(s);
+  if(!isOther){
+    const pe=document.getElementById('pts_'+code.replace(/\s/g,'_'));
+    if(pe) pe.textContent=val!=='—'&&GP[val]!==undefined?(GP[val]*cr).toFixed(2):'—';
+  }
+  updatePill(); calcSummary(); renderAllPrint();
+}
+function setElGr(sk,idx,val){
+  const s=getCS(); if(!s) return;
+  const e=(s.electives||{})[sk]?.[idx]; if(!e) return;
+  if(!s.grades) s.grades={};
+  if(val==='—') delete s.grades[e.c]; else s.grades[e.c]=val;
+  saveCS(s);
+  const cr=SEMS[sk].elCr||2.5;
+  const pe=document.getElementById('pts_'+e.c.replace(/\s/g,'_'));
+  if(pe) pe.textContent=val!=='—'&&GP[val]!==undefined?(GP[val]*cr).toFixed(2):'—';
+  updatePill(); calcSummary(); renderAllPrint();
+}
+function updatePill(){
+  const s=getCS(); if(!s) return;
+  const sg=semGPA(s,actSem);
+  const pill=document.getElementById('semPill'); if(!pill) return;
+  const cls=sg===null?'grey':sg>=3.7?'green':sg>=2.0?'gold':'warn';
+  pill.className='sem-pill '+cls;
+  pill.textContent=sg!==null?'Semester GPA: '+sg.toFixed(2):'No GPA grades yet';
+}
+
+// ══════ ELECTIVES ══════
+function addEl(sk){
+  const sel=document.getElementById('elPick_'+sk); if(!sel||!sel.value) return;
+  const [code,...np]=sel.value.split('|'); const name=np.join('|');
+  const s=getCS(); if(!s) return;
+  if(!s.electives) s.electives={};
+  if(!s.electives[sk]) s.electives[sk]=[];
+  if(s.electives[sk].find(e=>e.c===code)){ toast('Already added.'); return; }
+  s.electives[sk].push({c:code,n:name}); saveCS(s);
+  renderSemPanel(); renderAllPrint(); calcSummary(); toast('Elective added.');
+}
+function removeEl(sk,idx){
+  const s=getCS(); if(!s) return;
+  const e=(s.electives||{})[sk]?.[idx]; if(!e) return;
+  delete (s.grades||{})[e.c]; s.electives[sk].splice(idx,1); saveCS(s);
+  renderSemPanel(); renderAllPrint(); calcSummary(); toast('Elective removed.');
+}
+
+// ══════ NON-TECHNICAL MODULES ══════
+function addNtm(sk){
+  const sel=document.getElementById('ntmPick_'+sk); if(!sel||!sel.value) return;
+  const [code,...np]=sel.value.split('|'); const name=np.join('|');
+  const s=getCS(); if(!s) return;
+  if(!s.ntms) s.ntms={};
+  if(!s.ntms[sk]) s.ntms[sk]=[];
+  // Check not already added in this semester
+  if(s.ntms[sk].find(e=>e.c===code)){ toast('Already added to this semester.'); return; }
+  // Check not already added in the other Year 2 semester (s3 or s4)
+  const other=sk==='s3'?'s4':'s3';
+  if((s.ntms[other]||[]).find(e=>e.c===code)){ toast('This NTM is already added in the other Year 2 semester.'); return; }
+  // Warn if total across Y2 would exceed 2
+  const total=([...(s.ntms['s3']||[]),...(s.ntms['s4']||[])]).length;
+  if(total>=2){ if(!confirm('You already have 2 Non-Technical Modules across Year 2. Add a third anyway?')) return; }
+  s.ntms[sk].push({c:code,n:name}); saveCS(s);
+  renderSemPanel(); renderAllPrint(); calcSummary(); toast('Non-Technical Module added.');
+}
+function removeNtm(sk,idx){
+  const s=getCS(); if(!s) return;
+  const e=(s.ntms||{})[sk]?.[idx]; if(!e) return;
+  delete (s.grades||{})[e.c]; s.ntms[sk].splice(idx,1); saveCS(s);
+  renderSemPanel(); renderAllPrint(); calcSummary(); toast('Non-Technical Module removed.');
+}
+
+// ══════ OPEN STUDENT ══════
+function openStudent(sid){
+  curId=sid; actSem='s1'; activeInnerTab='grades';
+  const s=getStudents().find(x=>x.id===sid); if(!s) return;
+  if(!s.ngpaGrades){ s.ngpaGrades={}; }
+  if(!s.ntms){ s.ntms={}; }
+  const arr2=getStudents(); const i2=arr2.findIndex(x=>x.id===sid); arr2[i2]=s; saveStudents(arr2);
+  showView('calc');
+  // Reset inner tabs to grades
+  document.querySelectorAll('.inner-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.inner-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('itab-grades').classList.add('active');
+  document.getElementById('ivGrades').classList.add('active');
+  renderBanner(s); renderTabs(); renderSemPanel(); renderAllPrint(); calcSummary();
+}
+function getCS(){ return getStudents().find(x=>x.id===curId)||null; }
+function saveCS(s){ const arr=getStudents(); const i=arr.findIndex(x=>x.id===s.id); if(i>=0){ arr[i]=s; saveStudents(arr); } }
+
+function renderBanner(s){
+  const ini=((s.first||'?')[0]+(s.last||'?')[0]).toUpperCase();
+  document.getElementById('studentBanner').innerHTML=`
+    <div class="banner-avatar">${ini}</div>
+    <div class="banner-info">
+      <div class="b-name">${s.first} ${s.last}</div>
+      <div class="b-sub">${s.studentId} &nbsp;·&nbsp; Intake ${s.intake} &nbsp;·&nbsp; BScHons (IT&amp;M)</div>
+    </div>
+    <div class="banner-actions">
+      <button class="btn" onclick="openRegModal(true,'${s.id}')">✏️ Edit Info</button>
+      <button class="btn" onclick="switchInnerTab('summary')">📊 GPA Summary</button>
+      <button class="btn" onclick="doPrint()">🖨️ Print / PDF</button>
+      <button class="btn danger" onclick="openDel('${s.id}','${s.first} ${s.last}')">🗑️ Delete</button>
+    </div>`;
+}
+
+function doPrint(){
+  document.querySelectorAll('.print-show').forEach(e=>e.style.display='block');
+  window.print();
+  document.querySelectorAll('.print-show').forEach(e=>e.style.display='none');
+}
+
+function renderTabs(){
+  document.getElementById('semTabs').innerHTML=SEM_KEYS.map(sk=>`
+    <button class="sem-tab ${sk===actSem?'active':''}" onclick="switchSem('${sk}')">${SEMS[sk].label}</button>`).join('');
+}
+function switchSem(sk){ actSem=sk; renderTabs(); renderSemPanel(); }
+
+// ══════ REGISTRATION ══════
+function openRegModal(edit=false,sid=null){
+  editMode=edit; editId=sid;
+  document.getElementById('regTitle').textContent=edit?'Edit Student Info':'Register New Student';
+  if(edit&&sid){
+    const s=getStudents().find(x=>x.id===sid)||{};
+    document.getElementById('fFirst').value=s.first||'';
+    document.getElementById('fLast').value=s.last||'';
+    document.getElementById('fID').value=s.studentId||'';
+    document.getElementById('fIntake').value=s.intake||'';
+    document.getElementById('fEmail').value=s.email||'';
+    document.getElementById('fPhone').value=s.phone||'';
+  } else {
+    ['fFirst','fLast','fID','fEmail','fPhone'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fIntake').value='';
+  }
+  document.getElementById('regOverlay').classList.add('open');
+}
+function closeReg(){ document.getElementById('regOverlay').classList.remove('open'); }
+
+function saveStudent(){
+  const first=document.getElementById('fFirst').value.trim();
+  const last=document.getElementById('fLast').value.trim();
+  const studentId=document.getElementById('fID').value.trim();
+  const intake=document.getElementById('fIntake').value;
+  const email=document.getElementById('fEmail').value.trim();
+  const phone=document.getElementById('fPhone').value.trim();
+  if(!first||!last||!studentId||!intake){ toast('Please fill in all required fields.'); return; }
+  const arr=getStudents();
+  if(editMode&&editId){
+    const i=arr.findIndex(s=>s.id===editId);
+    if(i>=0){ arr[i]={...arr[i],first,last,studentId,intake,email,phone}; }
+    saveStudents(arr); closeReg(); toast('Student updated.');
+    renderBanner(arr[arr.findIndex(s=>s.id===editId)]); renderList();
+  } else {
+    if(arr.find(s=>s.studentId===studentId)){ toast('Student ID already exists.'); return; }
+    const ns={id:'s_'+Date.now(),first,last,studentId,intake,email,phone,grades:{},ngpaGrades:{},electives:{s5:[],s6:[],s78:[]},ntms:{s3:[],s4:[]}};
+    arr.push(ns); saveStudents(arr); closeReg(); toast('Student registered!'); openStudent(ns.id);
+  }
+}
+
+// ══════ DELETE ══════
+function openDel(sid,name){ delId=sid; document.getElementById('delMsg').textContent=`This will permanently remove ${name} and all grade data.`; document.getElementById('delOverlay').classList.add('open'); }
+function closeDel(){ document.getElementById('delOverlay').classList.remove('open'); delId=null; }
+function confirmDelete(){ if(!delId) return; saveStudents(getStudents().filter(s=>s.id!==delId)); closeDel(); toast('Student deleted.'); showView('list'); }
+
+// ══════ OVERLAY DISMISS ══════
+document.getElementById('regOverlay').addEventListener('click',function(e){ if(e.target===this) closeReg(); });
+document.getElementById('delOverlay').addEventListener('click',function(e){ if(e.target===this) closeDel(); });
+
+// ══════ INIT ══════
+renderList();
+</script>
+</body>
+</html>
