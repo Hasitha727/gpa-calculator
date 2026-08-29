@@ -682,6 +682,7 @@
       <p>Select pre-configured degree templates or create custom university curriculum structures.</p>
     </div>
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="btn purple" onclick="openBuilderModalWithPDF()">📄 Import Syllabus PDF</button>
       <button class="btn purple" onclick="openBuilderModal()">+ Create Custom Degree</button>
       <button class="btn" onclick="triggerImportJSON()">📥 Import JSON</button>
       <input type="file" id="fileImportJSON" accept=".json" style="display:none" onchange="handleFileImport(event)">
@@ -804,7 +805,7 @@
         <p>Upload a university handbook or course outline PDF to automatically extract modules, credits, and semesters.</p>
       </div>
       <div>
-        <button class="btn purple" onclick="document.getElementById('filePDF').click()">📄 Import Syllabus PDF</button>
+        <button class="btn purple" onclick="document.getElementById('filePDF').click()">📄 Choose Syllabus PDF</button>
         <input type="file" id="filePDF" accept=".pdf" style="display:none" onchange="handlePDFUpload(event)">
       </div>
     </div>
@@ -888,6 +889,11 @@ let builderActiveSem = 's1';
 
 const API_BASE = '/api';
 
+function openBuilderModalWithPDF() {
+  openBuilderModal();
+  document.getElementById('filePDF').click();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // 2. AUTOMATED PDF CURRICULUM EXTRACTION ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -918,31 +924,20 @@ async function handlePDFUpload(event) {
 }
 
 function parsePDFCurriculumText(text, fileName) {
-  // 1. Try extracting Degree Title
   let titleMatch = text.match(/(?:BSc|Bachelor|Bachelor of Science|Master|Diploma|B\.Tech|B\.E\.)[^\n,.]+/i);
   let extractedTitle = titleMatch ? titleMatch[0].trim() : fileName.replace('.pdf', '').replace(/[-_]/g, ' ');
 
-  // 2. Try extracting Institution / Faculty
   let instMatch = text.match(/(?:Faculty of|Department of|University of|Institute of|School of)[^\n,.]+/i);
   let extractedInst = instMatch ? instMatch[0].trim() : 'University Faculty';
 
   document.getElementById('bTitle').value = extractedTitle;
   document.getElementById('bInst').value = extractedInst;
 
-  // 3. Extract Course Codes, Titles, and Credits using Regex Pattern Engine
-  // Patterns like: IN 1120 Structured Programming I 2.5
-  // CS101 Data Structures 3.0
-  const courseRegex = /\b([A-Z]{2,4}\s*[-–]?\s*\d{3,4})\b[:\s\-\–]+([A-Za-z0-9\s&,()'\-]+?)(?:\s+(\d+(?:\.\d+)?)\s*(?:cr|credits?|hrs?)?|\s*$)/gi;
-  
-  let matches = [];
-  let match;
-  
-  // Split lines to process structure
   const lines = text.split(/\r?\n|\.\s+/);
   let currentSemIndex = 1;
+  let matches = [];
   
   lines.forEach(line => {
-    // Detect Semester Header
     const semHeaderMatch = line.match(/(?:semester|sem|level|year)\s*([0-9ivx]+)/i);
     if (semHeaderMatch) {
       const num = parseInt(semHeaderMatch[1], 10);
@@ -951,15 +946,12 @@ function parsePDFCurriculumText(text, fileName) {
       }
     }
 
-    // Match Courses
     const codeMatch = line.match(/\b([A-Z]{2,4}\s*[-–]?\s*\d{3,4})\b/i);
     if (codeMatch) {
       const code = codeMatch[1].trim();
-      // Extract credit number in the line
       const creditMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:cr|credits?|hrs?)/i) || line.match(/\b(\d\.\d|\d)\b/);
       const cr = creditMatch ? parseFloat(creditMatch[1]) : 3.0;
       
-      // Clean module title
       let titleStr = line.replace(codeMatch[0], '').replace(/(\d+(?:\.\d+)?)\s*(?:cr|credits?|hrs?)/i, '').trim();
       titleStr = titleStr.replace(/^[:\-\–\s]+/, '').replace(/[:\-\–\s]+$/, '');
       if (!titleStr || titleStr.length < 3) titleStr = `Course Module ${code}`;
@@ -967,7 +959,6 @@ function parsePDFCurriculumText(text, fileName) {
       const semKey = 's' + currentSemIndex;
       if (!builderModules[semKey]) builderModules[semKey] = [];
       
-      // Prevent duplicates
       if (!builderModules[semKey].find(m => m.c === code)) {
         builderModules[semKey].push({
           c: code,
@@ -980,7 +971,6 @@ function parsePDFCurriculumText(text, fileName) {
     }
   });
 
-  // Select semester count based on max sem index found
   const maxSemFound = Math.max(6, Math.min(10, currentSemIndex));
   document.getElementById('bSemCount').value = maxSemFound.toString();
 
