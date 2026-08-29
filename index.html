@@ -4,10 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Universal Academic GPA Calculator — Mobile & Tablet Ready</title>
-<meta name="description" content="Calculate, manage, and export university student GPAs with custom degree curriculum builders, configurable grading scales, REST API database integration, and official transcript summaries.">
+<meta name="description" content="Calculate, manage, and export university student GPAs with custom degree curriculum builders, PDF syllabus extraction, REST API database integration, and official transcript summaries.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- PDF.js CDN by Mozilla for Client-Side PDF Text Extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
 <style>
   :root {
     --bg-main: #f8fafc;
@@ -479,6 +486,22 @@
   }
   select.grade-select:focus { outline: none; border-color: var(--accent); }
 
+  /* PDF DROP & UPLOAD ZONE */
+  .pdf-upload-box {
+    border: 2px dashed var(--purple-border);
+    background: var(--purple-bg);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .pdf-upload-box h4 { font-size: 14px; font-weight: 700; color: var(--purple); margin-bottom: 2px; }
+  .pdf-upload-box p { font-size: 12.5px; color: var(--text-secondary); }
+
   /* MODALS */
   .modal-overlay {
     display: none;
@@ -766,13 +789,25 @@
   </div>
 </div>
 
-<!-- MODAL 2: CUSTOM DEGREE CURRICULUM BUILDER -->
+<!-- MODAL 2: CUSTOM DEGREE CURRICULUM BUILDER WITH PDF EXTRACTION -->
 <div class="modal-overlay" id="builderModal">
   <div class="modal-card wide">
     <h3 id="builderTitle">Create Custom Degree Curriculum</h3>
     <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 1rem;">
-      Define your university's degree title, grading scale, classification rules, and semester module structure.
+      Define your university's degree title, grading scale, and module structure manually or auto-extract from your handbook PDF.
     </p>
+
+    <!-- AUTOMATED PDF EXTRACTION BOX -->
+    <div class="pdf-upload-box">
+      <div>
+        <h4>📄 Auto-Extract Curriculum from PDF Syllabus</h4>
+        <p>Upload a university handbook or course outline PDF to automatically extract modules, credits, and semesters.</p>
+      </div>
+      <div>
+        <button class="btn purple" onclick="document.getElementById('filePDF').click()">📄 Import Syllabus PDF</button>
+        <input type="file" id="filePDF" accept=".pdf" style="display:none" onchange="handlePDFUpload(event)">
+      </div>
+    </div>
 
     <div class="form-row">
       <div class="form-group"><label>Degree Title *</label><input type="text" id="bTitle" placeholder="e.g. BSc in Software Engineering"></div>
@@ -854,7 +889,112 @@ let builderActiveSem = 's1';
 const API_BASE = '/api';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. REST API & SYNC ENGINE
+// 2. AUTOMATED PDF CURRICULUM EXTRACTION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+async function handlePDFUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  toast('📄 Extracting curriculum text from PDF...');
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = '';
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+
+    parsePDFCurriculumText(fullText, file.name);
+  } catch (err) {
+    console.error('PDF parsing error:', err);
+    toast('⚠️ Could not extract text from PDF. Please check PDF file format.');
+  }
+}
+
+function parsePDFCurriculumText(text, fileName) {
+  // 1. Try extracting Degree Title
+  let titleMatch = text.match(/(?:BSc|Bachelor|Bachelor of Science|Master|Diploma|B\.Tech|B\.E\.)[^\n,.]+/i);
+  let extractedTitle = titleMatch ? titleMatch[0].trim() : fileName.replace('.pdf', '').replace(/[-_]/g, ' ');
+
+  // 2. Try extracting Institution / Faculty
+  let instMatch = text.match(/(?:Faculty of|Department of|University of|Institute of|School of)[^\n,.]+/i);
+  let extractedInst = instMatch ? instMatch[0].trim() : 'University Faculty';
+
+  document.getElementById('bTitle').value = extractedTitle;
+  document.getElementById('bInst').value = extractedInst;
+
+  // 3. Extract Course Codes, Titles, and Credits using Regex Pattern Engine
+  // Patterns like: IN 1120 Structured Programming I 2.5
+  // CS101 Data Structures 3.0
+  const courseRegex = /\b([A-Z]{2,4}\s*[-–]?\s*\d{3,4})\b[:\s\-\–]+([A-Za-z0-9\s&,()'\-]+?)(?:\s+(\d+(?:\.\d+)?)\s*(?:cr|credits?|hrs?)?|\s*$)/gi;
+  
+  let matches = [];
+  let match;
+  
+  // Split lines to process structure
+  const lines = text.split(/\r?\n|\.\s+/);
+  let currentSemIndex = 1;
+  
+  lines.forEach(line => {
+    // Detect Semester Header
+    const semHeaderMatch = line.match(/(?:semester|sem|level|year)\s*([0-9ivx]+)/i);
+    if (semHeaderMatch) {
+      const num = parseInt(semHeaderMatch[1], 10);
+      if (!isNaN(num) && num >= 1 && num <= 10) {
+        currentSemIndex = num;
+      }
+    }
+
+    // Match Courses
+    const codeMatch = line.match(/\b([A-Z]{2,4}\s*[-–]?\s*\d{3,4})\b/i);
+    if (codeMatch) {
+      const code = codeMatch[1].trim();
+      // Extract credit number in the line
+      const creditMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:cr|credits?|hrs?)/i) || line.match(/\b(\d\.\d|\d)\b/);
+      const cr = creditMatch ? parseFloat(creditMatch[1]) : 3.0;
+      
+      // Clean module title
+      let titleStr = line.replace(codeMatch[0], '').replace(/(\d+(?:\.\d+)?)\s*(?:cr|credits?|hrs?)/i, '').trim();
+      titleStr = titleStr.replace(/^[:\-\–\s]+/, '').replace(/[:\-\–\s]+$/, '');
+      if (!titleStr || titleStr.length < 3) titleStr = `Course Module ${code}`;
+
+      const semKey = 's' + currentSemIndex;
+      if (!builderModules[semKey]) builderModules[semKey] = [];
+      
+      // Prevent duplicates
+      if (!builderModules[semKey].find(m => m.c === code)) {
+        builderModules[semKey].push({
+          c: code,
+          n: titleStr.substring(0, 60),
+          cr: cr,
+          type: 'compulsory'
+        });
+        matches.push(code);
+      }
+    }
+  });
+
+  // Select semester count based on max sem index found
+  const maxSemFound = Math.max(6, Math.min(10, currentSemIndex));
+  document.getElementById('bSemCount').value = maxSemFound.toString();
+
+  renderBuilderSemesters();
+
+  if (matches.length > 0) {
+    toast(`🎉 Successfully auto-extracted ${matches.length} course modules from PDF!`);
+  } else {
+    toast('📄 PDF parsed. Please review and add any missing module details.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. REST API & SYNC ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 async function syncDataWithBackend() {
   try {
@@ -887,7 +1027,7 @@ function saveLocalBackup() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. APPLICATION STATE & NAVIGATION
+// 4. APPLICATION STATE & NAVIGATION
 // ═══════════════════════════════════════════════════════════════════════════
 function switchView(viewName) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -921,7 +1061,7 @@ function toast(msg) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 4. GPA CALCULATIONS
+// 5. GPA CALCULATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 function getStudentCurriculum(student) {
   return currentCurricula.find(c => c.id === student.curriculumId) || currentCurricula[0] || {};
@@ -984,7 +1124,7 @@ function getBadgeClass(gpa) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 5. RENDER STUDENT LIST
+// 6. RENDER STUDENT LIST
 // ═══════════════════════════════════════════════════════════════════════════
 function renderStudents() {
   const grid = document.getElementById('studentGrid');
@@ -1037,7 +1177,7 @@ function renderStudents() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 6. RENDER CURRICULA MANAGER
+// 7. RENDER CURRICULA MANAGER
 // ═══════════════════════════════════════════════════════════════════════════
 function renderCurricula() {
   const grid = document.getElementById('currGrid');
@@ -1111,7 +1251,7 @@ async function deleteCurriculum(currId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 7. CALCULATOR & STUDENT GRADES
+// 8. CALCULATOR & STUDENT GRADES
 // ═══════════════════════════════════════════════════════════════════════════
 function openCalculator(studentId) {
   activeStudentId = studentId;
@@ -1327,7 +1467,7 @@ function renderSummaryPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 8. REGISTRATION MODAL
+// 9. REGISTRATION MODAL
 // ═══════════════════════════════════════════════════════════════════════════
 function openRegModal(edit = false, sid = null) {
   editStudentId = edit ? sid : null;
@@ -1419,7 +1559,7 @@ async function deleteStudent(sid) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 9. CUSTOM DEGREE CURRICULUM BUILDER MODAL
+// 10. CUSTOM DEGREE CURRICULUM BUILDER MODAL
 // ═══════════════════════════════════════════════════════════════════════════
 function openBuilderModal() {
   document.getElementById('bTitle').value = '';
